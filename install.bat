@@ -36,7 +36,7 @@ if exist "%OPCODE_CONFIG%" (
     ) else (
         echo Adding plugin to opencode.json...
         echo Please manually add the plugin to %OPCODE_CONFIG%:
-        echo   "plugin": ["./plugins/opencode-dynamic-openrouter-model-fetch/main.js"]
+        echo   "plugin": ["./plugins/opencode-dynamic-openrouter-model-fetch/dist/main.js"]
     )
 ) else (
     echo Creating new opencode.json with plugin...
@@ -44,7 +44,7 @@ if exist "%OPCODE_CONFIG%" (
         echo {
         echo   "$schema": "https://opencode.ai/config.json",
         echo   "plugin": [
-        echo     "./plugins/opencode-dynamic-openrouter-model-fetch/main.js"
+        echo     "./plugins/opencode-dynamic-openrouter-model-fetch/dist/main.js"
         echo   ]
         echo }
     ) > "%OPCODE_CONFIG%"

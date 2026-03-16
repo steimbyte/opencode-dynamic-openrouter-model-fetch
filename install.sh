@@ -29,6 +29,9 @@ echo "Copying plugin files..."
 cp -r dist/ "$PLUGIN_DIR/"
 cp -r scripts/ "$PLUGIN_DIR/"
 
+# Set execute permission on Python script
+chmod +x "$PLUGIN_DIR/scripts/refresh.py"
+
 # Check if plugin is already in opencode.json
 OPCODE_CONFIG="$OPCODE_CONFIG_DIR/opencode.json"
 if [ -f "$OPCODE_CONFIG" ]; then
@@ -42,11 +45,11 @@ if [ -f "$OPCODE_CONFIG" ]; then
         # Update opencode.json
         if command -v jq >/dev/null 2>&1; then
             # Use jq if available
-            jq '.plugin += ["./plugins/opencode-dynamic-openrouter-model-fetch/main.js"]' "$OPCODE_CONFIG" > "${OPCODE_CONFIG}.tmp" && mv "${OPCODE_CONFIG}.tmp" "$OPCODE_CONFIG"
+            jq '.plugin += ["./plugins/opencode-dynamic-openrouter-model-fetch/dist/main.js"]' "$OPCODE_CONFIG" > "${OPCODE_CONFIG}.tmp" && mv "${OPCODE_CONFIG}.tmp" "$OPCODE_CONFIG"
         else
             # Manual update for systems without jq
             echo "Warning: jq not found. Please manually add the plugin to opencode.json:"
-            echo '  "plugin": ["./plugins/opencode-dynamic-openrouter-model-fetch/main.js"]'
+            echo '  "plugin": ["./plugins/opencode-dynamic-openrouter-model-fetch/dist/main.js"]'
         fi
     fi
 else
@@ -55,7 +58,7 @@ else
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "./plugins/opencode-dynamic-openrouter-model-fetch/main.js"
+    "./plugins/opencode-dynamic-openrouter-model-fetch/dist/main.js"
   ]
 }
 EOF
