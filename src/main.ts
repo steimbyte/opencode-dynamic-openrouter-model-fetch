@@ -3,153 +3,238 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { tool, type Plugin } from "@opencode-ai/plugin";
 
-// ES module compatibility for __dirname
+// ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const DynamicModelRefresh: Plugin = async (input) => {
+const PluginEntry: Plugin = async (input) => {
   const { client } = input;
 
   return {
     name: "opencode-dynamic-openrouter-model-fetch",
-    description: "Dynamic OpenRouter model refresh plugin",
+    description: "Dynamic OpenRouter model fetch and import plugin",
     tool: {
-    "model-refresh": tool({
-          description: "Refresh OpenRouter models from API",
-          args: {},
-          async execute(args, context) {
-            // Show starting message
+      "fetch-models": tool({
+        description: "Fetch OpenRouter models from API and write to models.json",
+        args: {},
+        async execute(args, context) {
+          await client.app.log({
+            body: {
+              service: "fetch-models",
+              level: "info",
+              message: "Starting model fetch...",
+            },
+          });
+
+          try {
+            const scriptDir = dirname(__filename);
+            const scriptPath = join(scriptDir, "scripts", "fetch_models.py");
+
+            // Validate script exists
+            const fs = await import("fs/promises");
+            try {
+              await fs.access(scriptPath);
+            } catch (error) {
+              await client.app.log({
+                body: {
+                  service: "fetch-models",
+                  level: "error",
+                  message: `Fetch script not found: ${scriptPath}`,
+                },
+              });
+              return "❌ Error: fetch_models.py not found. Please reinstall the plugin.";
+            }
+
             await client.app.log({
               body: {
-                service: "model-refresh",
+                service: "fetch-models",
                 level: "info",
-                message: "Starting model refresh...",
+                message: `Running: python ${scriptPath}`,
               },
             });
 
-            try {
-              // Get the directory where this plugin is located
-              const pluginDir = dirname(__filename);
-              const scriptPath = join(pluginDir, "scripts", "refresh.py");
+            const python = spawn("python", [scriptPath], {
+              stdio: ["ignore", "pipe", "pipe"],
+            });
 
-              // Validate script exists
-              const fs = await import("fs/promises");
-              try {
-                await fs.access(scriptPath);
-              } catch (error) {
-                await client.app.log({
-                  body: {
-                    service: "model-refresh",
-                    level: "error",
-                    message: `Script not found at path: ${scriptPath}`,
-                  },
-                });
-                return "❌ Error: Refresh script not found. Please ensure the scripts directory is properly installed.";
-              }
+            let stdout = "";
+            let stderr = "";
 
-              // Check if Python is available
-              const pythonCheck = spawn("python", ["--version"], {
-                stdio: ["ignore", "pipe", "pipe"],
-              });
-              const pythonExitCode = await new Promise<number>((resolve) => {
-                pythonCheck.on("close", resolve);
-              });
+            python.stdout.on("data", (data: Buffer) => {
+              stdout += data.toString();
+            });
 
-              if (pythonExitCode !== 0) {
-                await client.app.log({
-                  body: {
-                    service: "model-refresh",
-                    level: "error",
-                    message: "Python is not installed or not in PATH. Please install Python 3.6+.",
-                  },
-                });
-                return "❌ Error: Python is required but not found. Please install Python 3.6 or higher.";
-              }
+            python.stderr.on("data", (data: Buffer) => {
+              stderr += data.toString();
+            });
 
+            const exitCode = await new Promise<number>((resolve) => {
+              python.on("close", resolve);
+            });
+
+            if (stdout) {
               await client.app.log({
                 body: {
-                  service: "model-refresh",
+                  service: "fetch-models",
                   level: "info",
-                  message: `Running refresh script at: ${scriptPath}`,
+                  message: stdout,
                 },
               });
+            }
 
-              const python = spawn("python", [scriptPath], {
-                stdio: ["ignore", "pipe", "pipe"],
-              });
-
-              // Capture output
-              let stdout = "";
-              let stderr = "";
-
-              python.stdout.on("data", (data: Buffer) => {
-                stdout += data.toString();
-              });
-
-              python.stderr.on("data", (data: Buffer) => {
-                stderr += data.toString();
-              });
-
-              // Wait for completion
-              const exitCode = await new Promise<number>((resolve) => {
-                python.on("close", resolve);
-              });
-
-              // Log output
-              if (stdout) {
-                await client.app.log({
-                  body: {
-                    service: "model-refresh",
-                    level: "info",
-                    message: stdout,
-                  },
-                });
-              }
-
-              if (stderr) {
-                await client.app.log({
-                  body: {
-                    service: "model-refresh",
-                    level: "warn",
-                    message: stderr,
-                  },
-                });
-              }
-
-              if (exitCode === 0) {
-                await client.app.log({
-                  body: {
-                    service: "model-refresh",
-                    level: "info",
-                    message: "Model refresh completed successfully!",
-                  },
-                });
-                return "✅ Model refresh completed successfully! OpenRouter models have been updated.";
-              } else {
-                await client.app.log({
-                  body: {
-                    service: "model-refresh",
-                    level: "error",
-                    message: `Model refresh failed with exit code ${exitCode}`,
-                  },
-                });
-                return `❌ Model refresh failed with exit code ${exitCode}`;
-              }
-            } catch (error: any) {
+            if (stderr) {
               await client.app.log({
                 body: {
-                  service: "model-refresh",
-                  level: "error",
-                  message: `Error running refresh script: ${error.message}`,
+                  service: "fetch-models",
+                  level: "warn",
+                  message: stderr,
                 },
               });
-              return `❌ Error running refresh script: ${error.message}`;
             }
-          },
-        })
-      }
-    }
-  ;
-}
 
-export default DynamicModelRefresh;
+            if (exitCode === 0) {
+              await client.app.log({
+                body: {
+                  service: "fetch-models",
+                  level: "info",
+                  message: "Model fetch completed successfully!",
+                },
+              });
+              return "✅ Model fetch completed! Use /import-models to load into opencode.json.";
+            } else {
+              await client.app.log({
+                body: {
+                  service: "fetch-models",
+                  level: "error",
+                  message: `Fetch failed with exit code ${exitCode}`,
+                },
+              });
+              return `❌ Model fetch failed with exit code ${exitCode}`;
+            }
+          } catch (error: any) {
+            await client.app.log({
+              body: {
+                service: "fetch-models",
+                level: "error",
+                message: `Error: ${error.message}`,
+              },
+            });
+            return `❌ Error: ${error.message}`;
+          }
+        },
+      }),
+
+      "import-models": tool({
+        description: "Import models from local models.json into opencode.json",
+        args: {},
+        async execute(args, context) {
+          await client.app.log({
+            body: {
+              service: "import-models",
+              level: "info",
+              message: "Starting model import...",
+            },
+          });
+
+          try {
+            const scriptDir = dirname(__filename);
+            const scriptPath = join(scriptDir, "scripts", "import_models.py");
+
+            // Validate script exists
+            const fs = await import("fs/promises");
+            try {
+              await fs.access(scriptPath);
+            } catch (error) {
+              await client.app.log({
+                body: {
+                  service: "import-models",
+                  level: "error",
+                  message: `Import script not found: ${scriptPath}`,
+                },
+              });
+              return "❌ Error: import_models.py not found. Please reinstall the plugin.";
+            }
+
+            await client.app.log({
+              body: {
+                service: "import-models",
+                level: "info",
+                message: `Running: python ${scriptPath}`,
+              },
+            });
+
+            const python = spawn("python", [scriptPath], {
+              stdio: ["ignore", "pipe", "pipe"],
+            });
+
+            let stdout = "";
+            let stderr = "";
+
+            python.stdout.on("data", (data: Buffer) => {
+              stdout += data.toString();
+            });
+
+            python.stderr.on("data", (data: Buffer) => {
+              stderr += data.toString();
+            });
+
+            const exitCode = await new Promise<number>((resolve) => {
+              python.on("close", resolve);
+            });
+
+            if (stdout) {
+              await client.app.log({
+                body: {
+                  service: "import-models",
+                  level: "info",
+                  message: stdout,
+                },
+              });
+            }
+
+            if (stderr) {
+              await client.app.log({
+                body: {
+                  service: "import-models",
+                  level: "warn",
+                  message: stderr,
+                },
+              });
+            }
+
+            if (exitCode === 0) {
+              await client.app.log({
+                body: {
+                  service: "import-models",
+                  level: "info",
+                  message: "Model import completed successfully!",
+                },
+              });
+              return "✅ Models imported into opencode.json successfully!";
+            } else {
+              await client.app.log({
+                body: {
+                  service: "import-models",
+                  level: "error",
+                  message: `Import failed with exit code ${exitCode}`,
+                },
+              });
+              return `❌ Model import failed with exit code ${exitCode}`;
+            }
+          } catch (error: any) {
+            await client.app.log({
+              body: {
+                service: "import-models",
+                level: "error",
+                message: `Error: ${error.message}`,
+              },
+            });
+            return `❌ Error: ${error.message}`;
+          }
+        },
+      }),
+    },
+  };
+};
+
+export default PluginEntry;

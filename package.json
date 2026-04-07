@@ -1,22 +1,22 @@
 {
   "name": "opencode-dynamic-openrouter-model-fetch",
-  "version": "1.0.0",
-  "description": "OpenCode plugin that adds /dynamic-model-refresh command to fetch OpenRouter models",
+  "version": "2.0.0",
+  "description": "OpenCode plugin: fetch OpenRouter models to local models.json and import into opencode.json",
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
-  "keywords": [
-    "opencode",
-    "plugin",
-    "openrouter",
-    "models",
-    "refresh",
-    "dynamic"
-  ],
-  "author": "benjamin.steimer",
+   "keywords": [
+     "opencode",
+     "plugin",
+     "openrouter",
+     "models",
+     "fetch",
+     "import"
+   ],
+  "author": "alephtex",
   "license": "MIT",
   "dependencies": {
     "@opencode-ai/plugin": "^1.0.0"
@@ -32,6 +32,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/benjamin-steimer/opencode-dynamic-openrouter-model-fetch.git"
+    "url": "https://github.com/alephtex/opencode-dynamic-openrouter-model-fetch.git"
   }
 }
