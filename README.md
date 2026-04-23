@@ -1,5 +1,8 @@
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/steimerbyte)
 
+> ⭐ If you find this useful, consider [supporting me on Ko-fi](https://ko-fi.com/steimerbyte)!
+
+
 # opencode-dynamic-openrouter-model-fetch
 
 An OpenCode plugin that adds a `/dynamic-model-refresh` command to fetch the latest OpenRouter models and update your configuration.
