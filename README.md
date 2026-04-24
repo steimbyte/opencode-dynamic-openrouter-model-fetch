@@ -6,7 +6,7 @@
 
 # opencode-dynamic-openrouter-model-fetch
 
-An OpenCode plugin that adds a `/dynamic-model-refresh` command to fetch the latest OpenRouter models and update your configuration.
+An OpenCode plugin that adds a `/model-refresh` command to fetch the latest OpenRouter models and update your configuration.
 
 ## Features
 
